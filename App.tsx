@@ -1,59 +1,70 @@
 import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { Provider as PaperProvider } from 'react-native-paper';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { theme } from './src/constants/theme';
-import LoginScreen from './src/screens/LoginScreen';
+import { StatusBar } from 'expo-status-bar';
 import MainNavigation from './src/navigation/MainNavigation';
+import LoginScreen from './src/screens/LoginScreen';
+import AddBookScreen from './src/screens/AddBookScreen';
 import LibraryGuideScreen from './src/screens/LibraryGuideScreen';
 import LibraryMapScreen from './src/screens/LibraryMapScreen';
-import AddBookScreen from './src/screens/AddBookScreen';
-import ReminderScreen from './src/screens/ReminderScreen';
 import ReadingTrackerScreen from './src/screens/ReadingTrackerScreen';
+import ReminderScreen from './src/screens/ReminderScreen';
+import { colors } from './src/constants/theme';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-    <PaperProvider theme={theme}>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        <Stack.Navigator
-          initialRouteName="Login"
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="Main" component={MainNavigation} />
-          <Stack.Screen 
-            name="LibraryGuide" 
-            component={LibraryGuideScreen}
-            options={{ headerShown: true, title: 'Library Guide' }}
-          />
-          <Stack.Screen 
-            name="LibraryMap" 
-            component={LibraryMapScreen}
-            options={{ headerShown: true, title: 'Library Map' }}
-          />
-          <Stack.Screen 
-            name="AddBook" 
-            component={AddBookScreen}
-            options={{ headerShown: true, title: 'Add Borrowed Book' }}
-          />
-          <Stack.Screen 
-            name="Reminder" 
-            component={ReminderScreen}
-            options={{ headerShown: true, title: 'Reminders' }}
-          />
-          <Stack.Screen 
-            name="ReadingTracker" 
-            component={ReadingTrackerScreen}
-            options={{ headerShown: true, title: 'Reading Progress' }}
-          />
-        </Stack.Navigator>
-      </NavigationContainer>
-    </PaperProvider>
+    <NavigationContainer>
+      <StatusBar style="light" />
+      <Stack.Navigator
+        initialRouteName="Main"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: colors.primary,
+          },
+          headerTintColor: colors.surface,
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
+        }}
+      >
+        <Stack.Screen
+          name="Main"
+          component={MainNavigation}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="Login"
+          component={LoginScreen}
+          options={{ title: 'Login' }}
+        />
+        <Stack.Screen
+          name="AddBook"
+          component={AddBookScreen}
+          options={{ title: 'Add Borrowed Book' }}
+        />
+        <Stack.Screen
+          name="LibraryGuide"
+          component={LibraryGuideScreen}
+          options={{ title: 'Library Guide' }}
+        />
+        <Stack.Screen
+          name="LibraryMap"
+          component={LibraryMapScreen}
+          options={{ title: 'Library Map' }}
+        />
+        <Stack.Screen
+          name="ReadingTracker"
+          component={ReadingTrackerScreen}
+          options={{ title: 'Reading Tracker' }}
+        />
+        <Stack.Screen
+          name="Reminder"
+          component={ReminderScreen}
+          options={{ title: 'Set Reminder' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
