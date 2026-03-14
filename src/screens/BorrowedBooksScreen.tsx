@@ -1,33 +1,119 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { 
+  StyleSheet, 
+  View, 
+  Text, 
+  ScrollView, 
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Alert,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useQuery, useMutation } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { colors, borderRadius, spacing } from '../constants/theme';
 import BookCard from '../components/BookCard';
-import { getDummyBooks, getDueSoonBooks, getOverdueBooks, getNormalBooks } from '../data/dummyBooks';
+import { getUserId } from '../utils/userStorage';
 
 const BorrowedBooksScreen = () => {
   const navigation = useNavigation();
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const borrowedBooks = getDummyBooks();
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Get user ID
+  const userId = getUserId();
+
+  // Fetch books from Convex
+  const borrowedBooks = useQuery(
+    api.books.getUserBorrowedBooks,
+    userId ? { userId: userId as any } : "skip"
+  );
+
+  // Delete mutation
+  const deleteBorrowedBook = useMutation(api.books.deleteBorrowedBook);
+
+  // Handle edit book
+  const handleEditBook = (book: any) => {
+    (navigation as any).navigate('EditBook', {
+      bookId: book._id,
+      title: book.title,
+      author: book.author || '',
+      borrowDate: book.borrowDate,
+      returnDate: book.returnDate,
+    });
+  };
+
+  // Handle delete book
+  const handleDeleteBook = (book: any) => {
+    Alert.alert(
+      'Delete Book',
+      `Are you sure you want to delete "${book.title}"?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteBorrowedBook({ bookId: book._id });
+              Alert.alert('Success', 'Book deleted successfully');
+            } catch (error: any) {
+              console.error('Error deleting book:', error);
+              Alert.alert('Error', 'Failed to delete book. Please try again.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Count books by status
+  const countByStatus = (status: string) => {
+    if (!borrowedBooks) return 0;
+    return borrowedBooks.filter((book: any) => book.status === status).length;
+  };
+
+  const dueSoonCount = countByStatus('dueSoon');
+  const overdueCount = countByStatus('late');
+  const normalCount = countByStatus('normal');
 
   const getFilteredBooks = () => {
+    if (!borrowedBooks) return [];
+    
     switch (selectedFilter) {
       case 'Due Soon':
-        return getDueSoonBooks(borrowedBooks);
+        return borrowedBooks.filter((book: any) => book.status === 'dueSoon');
       case 'Overdue':
-        return getOverdueBooks(borrowedBooks);
+        return borrowedBooks.filter((book: any) => book.status === 'late');
       case 'Normal':
-        return getNormalBooks(borrowedBooks);
+        return borrowedBooks.filter((book: any) => book.status === 'normal');
       default:
         return borrowedBooks;
     }
   };
 
   const filteredBooks = getFilteredBooks();
-  const dueSoonCount = getDueSoonBooks(borrowedBooks).length;
-  const overdueCount = getOverdueBooks(borrowedBooks).length;
-
   const filters = ['All', 'Normal', 'Due Soon', 'Overdue'];
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Convex auto-refreshes, just simulate refresh UI
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
+  // Loading state
+  if (borrowedBooks === undefined) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading books...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -80,14 +166,41 @@ const BorrowedBooksScreen = () => {
         ))}
       </ScrollView>
 
-      <ScrollView style={styles.booksList}>
+      <ScrollView 
+        style={styles.booksList}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {filteredBooks.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyIcon}>📚</Text>
-            <Text style={styles.emptyText}>No books found</Text>
+            <Text style={styles.emptyText}>
+              {selectedFilter === 'All' 
+                ? 'No borrowed books yet'
+                : `No ${selectedFilter.toLowerCase()} books`}
+            </Text>
+            <Text style={styles.emptyHint}>
+              Tap the "Add Book" button to add your first book
+            </Text>
           </View>
         ) : (
-          filteredBooks.map((book) => <BookCard key={book.id} book={book} />)
+          filteredBooks.map((book: any) => (
+            <BookCard 
+              key={book._id} 
+              book={{
+                id: book._id,
+                title: book.title,
+                author: book.author || 'Unknown Author',
+                borrowDate: new Date(book.borrowDate),
+                returnDate: new Date(book.returnDate),
+                readingProgress: 0, // TODO: Link with reading progress
+              }}
+              onEdit={() => handleEditBook(book)}
+              onDelete={() => handleDeleteBook(book)}
+              showActions={true}
+            />
+          ))
         )}
       </ScrollView>
 
@@ -107,6 +220,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: spacing.md,
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   statsBar: {
     flexDirection: 'row',
@@ -165,6 +287,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.xl * 3,
+    paddingHorizontal: spacing.lg,
   },
   emptyIcon: {
     fontSize: 80,
@@ -174,6 +297,14 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     color: colors.textSecondary,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  emptyHint: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    opacity: 0.7,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

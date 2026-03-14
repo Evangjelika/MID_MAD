@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -10,29 +10,38 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { colors, borderRadius, spacing } from '../constants/theme';
-import { POINTS } from '../constants/constants';
-import { getUserId } from '../utils/userStorage';
 import CustomButton from '../components/CustomButton';
 
-const AddBookScreen = () => {
+type EditBookRouteParams = {
+  EditBook: {
+    bookId: string;
+    title: string;
+    author: string;
+    borrowDate: number;
+    returnDate: number;
+  };
+};
+
+const EditBookScreen = () => {
   const navigation = useNavigation();
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [borrowDate, setBorrowDate] = useState(new Date());
-  const [returnDate, setReturnDate] = useState(
-    new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-  );
+  const route = useRoute<RouteProp<EditBookRouteParams, 'EditBook'>>();
+  const { bookId, title: initialTitle, author: initialAuthor, borrowDate: initialBorrowDate, returnDate: initialReturnDate } = route.params;
+
+  const [title, setTitle] = useState(initialTitle);
+  const [author, setAuthor] = useState(initialAuthor);
+  const [borrowDate, setBorrowDate] = useState(new Date(initialBorrowDate));
+  const [returnDate, setReturnDate] = useState(new Date(initialReturnDate));
   const [showBorrowPicker, setShowBorrowPicker] = useState(false);
   const [showReturnPicker, setShowReturnPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // Convex mutation
-  const addBorrowedBook = useMutation(api.books.addBorrowedBook);
+  const updateBorrowedBook = useMutation(api.books.updateBorrowedBook);
 
   const formatDate = (date: Date): string => {
     return date.toLocaleDateString('en-US', {
@@ -53,20 +62,12 @@ const AddBookScreen = () => {
       return;
     }
 
-    // Get user ID from storage
-    const userId = getUserId();
-    
-    if (!userId) {
-      Alert.alert('Error', 'User not initialized. Please restart the app.');
-      return;
-    }
-
     setIsLoading(true);
 
     try {
-      // Add book to Convex database
-      await addBorrowedBook({
-        userId: userId as any, // Type assertion for Convex ID
+      // Update book in Convex database
+      await updateBorrowedBook({
+        bookId: bookId as any,
         title: title.trim(),
         author: author.trim(),
         borrowDate: borrowDate.getTime(),
@@ -74,30 +75,20 @@ const AddBookScreen = () => {
       });
 
       Alert.alert(
-        'Success! 🎉',
-        `"${title}" added to your borrowed books!\n\n+${POINTS.ADD_BOOK} points earned!`,
+        'Success! ✓',
+        `"${title}" has been updated successfully!`,
         [
           {
-            text: 'Add Another',
-            onPress: () => {
-              setTitle('');
-              setAuthor('');
-              setBorrowDate(new Date());
-              setReturnDate(new Date(Date.now() + 14 * 24 * 60 * 60 * 1000));
-            },
-          },
-          {
-            text: 'View Books',
+            text: 'OK',
             onPress: () => navigation.goBack(),
-            style: 'default',
           },
         ]
       );
     } catch (error: any) {
-      console.error('Error adding book:', error);
+      console.error('Error updating book:', error);
       Alert.alert(
         'Error',
-        error.message || 'Failed to add book. Please try again.'
+        error.message || 'Failed to update book. Please try again.'
       );
     } finally {
       setIsLoading(false);
@@ -107,9 +98,9 @@ const AddBookScreen = () => {
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.infoCard}>
-        <Text style={styles.infoIcon}>⭐</Text>
+        <Text style={styles.infoIcon}>✏️</Text>
         <Text style={styles.infoText}>
-          Earn {POINTS.ADD_BOOK} points by adding a borrowed book!
+          Update your book details below
         </Text>
       </View>
 
@@ -183,14 +174,16 @@ const AddBookScreen = () => {
         {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={styles.loadingText}>Adding book...</Text>
+            <Text style={styles.loadingText}>Updating book...</Text>
           </View>
         ) : (
-          <CustomButton 
-            title="Add Book" 
-            onPress={handleSave} 
-            fullWidth 
-          />
+          <View style={styles.buttonContainer}>
+            <CustomButton 
+              title="Save Changes" 
+              onPress={handleSave} 
+              fullWidth 
+            />
+          </View>
         )}
       </View>
     </ScrollView>
@@ -205,11 +198,11 @@ const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: colors.accent + '1A',
+    backgroundColor: colors.primary + '1A',
     borderRadius: borderRadius.md,
     padding: spacing.md,
     borderWidth: 2,
-    borderColor: colors.accent + '4D',
+    borderColor: colors.primary + '4D',
     marginBottom: spacing.lg,
   },
   infoIcon: {
@@ -242,6 +235,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
     fontSize: 16,
+    color: colors.textPrimary,
   },
   dateInput: {
     backgroundColor: colors.surface,
@@ -255,6 +249,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.textPrimary,
   },
+  buttonContainer: {
+    marginTop: spacing.md,
+  },
   loadingContainer: {
     alignItems: 'center',
     paddingVertical: spacing.xl,
@@ -266,4 +263,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddBookScreen;
+export default EditBookScreen;

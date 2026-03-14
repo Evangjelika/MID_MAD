@@ -17,14 +17,8 @@ const StatCard: React.FC<StatCardProps> = ({
   color = colors.primary,
   onPress,
 }) => {
-  const Container = onPress ? TouchableOpacity : View;
-
-  return (
-    <Container
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
+  const content = (
+    <>
       <View style={[styles.iconContainer, { backgroundColor: color + '26' }]}>
         <Text style={styles.icon}>{icon}</Text>
       </View>
@@ -32,7 +26,25 @@ const StatCard: React.FC<StatCardProps> = ({
       <Text style={styles.title} numberOfLines={2}>
         {title}
       </Text>
-    </Container>
+    </>
+  );
+
+  if (onPress) {
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        {content}
+      </TouchableOpacity>
+    );
+  }
+
+  return (
+    <View style={styles.card}>
+      {content}
+    </View>
   );
 };
 

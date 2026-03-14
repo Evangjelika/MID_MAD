@@ -7,9 +7,18 @@ import { formatDate } from '../utils/dateUtils';
 interface BookCardProps {
   book: Book;
   onPress?: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  showActions?: boolean;
 }
 
-const BookCard: React.FC<BookCardProps> = ({ book, onPress }) => {
+const BookCard: React.FC<BookCardProps> = ({ 
+  book, 
+  onPress, 
+  onEdit, 
+  onDelete,
+  showActions = true 
+}) => {
   const status = getBookStatus(book);
   const daysUntilDue = getDaysUntilDue(book);
 
@@ -36,42 +45,69 @@ const BookCard: React.FC<BookCardProps> = ({ book, onPress }) => {
   };
 
   return (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={onPress}
-      activeOpacity={0.7}
-    >
-      <View style={styles.header}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.bookIcon}>📚</Text>
+    <View style={styles.card}>
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.7}
+        style={styles.cardContent}
+      >
+        <View style={styles.header}>
+          <View style={styles.iconContainer}>
+            <Text style={styles.bookIcon}>📚</Text>
+          </View>
+          <View style={styles.bookInfo}>
+            <Text style={styles.title} numberOfLines={2}>
+              {book.title}
+            </Text>
+            <Text style={styles.author} numberOfLines={1}>
+              {book.author}
+            </Text>
+          </View>
         </View>
-        <View style={styles.bookInfo}>
-          <Text style={styles.title} numberOfLines={2}>
-            {book.title}
-          </Text>
-          <Text style={styles.author} numberOfLines={1}>
-            {book.author}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.dates}>
-        <View style={styles.dateColumn}>
-          <Text style={styles.dateLabel}>Borrowed</Text>
-          <Text style={styles.dateValue}>{formatDate(book.borrowDate)}</Text>
+        <View style={styles.dates}>
+          <View style={styles.dateColumn}>
+            <Text style={styles.dateLabel}>Borrowed</Text>
+            <Text style={styles.dateValue}>{formatDate(book.borrowDate)}</Text>
+          </View>
+          <View style={styles.dateColumn}>
+            <Text style={styles.dateLabel}>Return</Text>
+            <Text style={styles.dateValue}>{formatDate(book.returnDate)}</Text>
+          </View>
         </View>
-        <View style={styles.dateColumn}>
-          <Text style={styles.dateLabel}>Return</Text>
-          <Text style={styles.dateValue}>{formatDate(book.returnDate)}</Text>
-        </View>
-      </View>
 
-      <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '26' }]}>
-        <Text style={[styles.statusText, { color: getStatusColor() }]}>
-          {getStatusText()}
-        </Text>
-      </View>
-    </TouchableOpacity>
+        <View style={[styles.statusBadge, { backgroundColor: getStatusColor() + '26' }]}>
+          <Text style={[styles.statusText, { color: getStatusColor() }]}>
+            {getStatusText()}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {showActions && (onEdit || onDelete) && (
+        <View style={styles.actionsContainer}>
+          {onEdit && (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.editButton]}
+              onPress={onEdit}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIcon}>✏️</Text>
+              <Text style={styles.actionText}>Edit</Text>
+            </TouchableOpacity>
+          )}
+          {onDelete && (
+            <TouchableOpacity 
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={onDelete}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.actionIcon}>🗑️</Text>
+              <Text style={[styles.actionText, styles.deleteText]}>Delete</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -79,10 +115,13 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.md,
     marginHorizontal: spacing.md,
     marginVertical: spacing.sm,
     ...shadows.small,
+    overflow: 'hidden',
+  },
+  cardContent: {
+    padding: spacing.md,
   },
   header: {
     flexDirection: 'row',
@@ -139,6 +178,37 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 13,
     fontWeight: '600',
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.md,
+    gap: spacing.xs,
+  },
+  editButton: {
+    borderRightWidth: 1,
+    borderRightColor: colors.border,
+  },
+  deleteButton: {
+    // No special styles for delete button
+  },
+  actionIcon: {
+    fontSize: 18,
+  },
+  actionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
+  },
+  deleteText: {
+    color: colors.error,
   },
 });
 

@@ -8,8 +8,11 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useMutation, useQuery } from 'convex/react';
+import { api } from '../../convex/_generated/api';
 import { colors, borderRadius, spacing } from '../constants/theme';
 import { APP_NAME, APP_TAGLINE } from '../constants/constants';
 import CustomButton from '../components/CustomButton';
@@ -18,20 +21,73 @@ const LoginScreen = () => {
   const navigation = useNavigation();
   const [studentId, setStudentId] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [faculty, setFaculty] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [secureText, setSecureText] = useState(true);
+  const [isNewUser, setIsNewUser] = useState(false);
 
-  const handleLogin = () => {
+  // Convex mutations
+  const createUser = useMutation(api.users.createUser);
+
+  const handleLogin = async () => {
+    // Validation
     if (!studentId || !password) {
-      alert('Please enter your Student ID and Password');
+      Alert.alert('Error', 'Please enter your Student ID and Password');
+      return;
+    }
+
+    if (isNewUser && (!fullName || !faculty)) {
+      Alert.alert('Error', 'Please fill in all fields to register');
       return;
     }
 
     setIsLoading(true);
-    setTimeout(() => {
+
+    try {
+      if (isNewUser) {
+        // Register new user
+        await createUser({
+          studentId: studentId,
+          name: fullName,
+          faculty: faculty,
+        });
+
+        Alert.alert(
+          'Success',
+          'Account created successfully! Welcome to LIBGO!',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Main' as never),
+            },
+          ]
+        );
+      } else {
+        // For existing user login (simplified - no password verification in backend)
+        // In production, you'd verify the password here
+        navigation.navigate('Main' as never);
+      }
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      if (error.message?.includes('already exists')) {
+        Alert.alert(
+          'Account Exists',
+          'This Student ID already exists. Please login instead.',
+          [
+            {
+              text: 'OK',
+              onPress: () => setIsNewUser(false),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', error.message || 'Failed to login. Please try again.');
+      }
+    } finally {
       setIsLoading(false);
-      navigation.navigate('Main' as never);
-    }, 1000);
+    }
   };
 
   return (
@@ -53,8 +109,12 @@ const LoginScreen = () => {
         <Text style={styles.tagline}>{APP_TAGLINE}</Text>
 
         <View style={styles.formContainer}>
-          <Text style={styles.welcomeText}>Welcome Back!</Text>
-          <Text style={styles.subtitle}>Login to continue</Text>
+          <Text style={styles.welcomeText}>
+            {isNewUser ? 'Create Account' : 'Welcome Back!'}
+          </Text>
+          <Text style={styles.subtitle}>
+            {isNewUser ? 'Register to get started' : 'Login to continue'}
+          </Text>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Student ID (NIM)</Text>
@@ -63,10 +123,36 @@ const LoginScreen = () => {
               placeholder="Enter your student ID"
               value={studentId}
               onChangeText={setStudentId}
-              keyboardType="numeric"
+              keyboardType="default"
               autoCapitalize="none"
             />
           </View>
+
+          {isNewUser && (
+            <>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Full Name</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter your full name"
+                  value={fullName}
+                  onChangeText={setFullName}
+                  autoCapitalize="words"
+                />
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Faculty</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g., Computer Science"
+                  value={faculty}
+                  onChangeText={setFaculty}
+                  autoCapitalize="words"
+                />
+              </View>
+            </>
+          )}
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Password</Text>
@@ -89,14 +175,27 @@ const LoginScreen = () => {
           </View>
 
           <CustomButton
-            title="Login"
+            title={isNewUser ? 'Register' : 'Login'}
             onPress={handleLogin}
             isLoading={isLoading}
             fullWidth
           />
 
+          <TouchableOpacity
+            onPress={() => setIsNewUser(!isNewUser)}
+            style={styles.switchButton}
+          >
+            <Text style={styles.switchText}>
+              {isNewUser
+                ? 'Already have an account? Login'
+                : "Don't have an account? Register"}
+            </Text>
+          </TouchableOpacity>
+
           <Text style={styles.infoText}>
-            Use any Student ID and Password to login
+            {isNewUser
+              ? 'Create your account to start tracking your library activities'
+              : 'Enter your credentials to access your account'}
           </Text>
         </View>
       </ScrollView>
@@ -197,6 +296,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontStyle: 'italic',
     marginTop: spacing.lg,
+  },
+  switchButton: {
+    marginTop: spacing.lg,
+    padding: spacing.sm,
+  },
+  switchText: {
+    fontSize: 14,
+    color: colors.primary,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });
 

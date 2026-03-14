@@ -10,8 +10,8 @@ const ProfileScreen = () => {
   const borrowedBooks = getDummyBooks();
 
   const userData = {
-    name: 'John Doe',
-    studentId: '123456789',
+    name: 'Pietersz Evangjelika Coralie',
+    studentId: 'S22310385',
     faculty: 'Computer Science',
     libraryPoints: 45,
     booksReturned: 12,

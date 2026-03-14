@@ -21,7 +21,7 @@ export const DUE_SOON_THRESHOLD = 3;
 export const LIBRARY_SECTIONS = [
   { name: 'Shelf A', category: 'Education', icon: '📚' },
   { name: 'Shelf B', category: 'Computer Science', icon: '💻' },
-  { name: 'Shelf C', category: 'Religion', icon: '🕌' },
+  { name: 'Shelf C', category: 'Religion', icon: '🕌 💒' },
   { name: 'Shelf D', category: 'Business', icon: '💼' },
   { name: 'Shelf E', category: 'Social Sciences', icon: '🌍' },
   { name: 'Shelf F', category: 'Engineering', icon: '⚙️' },
